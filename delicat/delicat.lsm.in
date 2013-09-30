@@ -1,0 +1,21 @@
+Begin3
+Title:		delicat
+Version:	@VERSION@
+Entered-date:	@ISODATE@
+Description:	Allows concatenation of streams so that de-concatenation is possible.
+		@configure_input@
+		Please edit delicat.lsm.in to fix the Keywords and
+		Primary-site entries, add several more lines of
+		description here if appropriate, and to delete these
+		instructions.
+Keywords:	[substitute your keywords here]
+Author: 	aba@isag.meng.auth.gr (Tassos Bassoukos)
+Maintained-by:	aba@isag.meng.auth.gr (Tassos Bassoukos)
+Primary-site:	metlab.unc.edu pub/Linux/apps/some/directory
+		31k delicat-@VERSION@.tar.gz
+		500  delicat.lsm
+Alternate-site: 
+Original-site:  
+Platforms:      
+Copying-policy:	GNU copyleft
+End

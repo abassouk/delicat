@@ -1,0 +1,39 @@
+/^.\\" @synopsis@$/,/^.\\" @@$/{
+  if (!synopsis_updated) {
+    print ".\\\" @synopsis@\n\
+.B delicat\n\
+.\\\" Mixture of short (flag) options and long options\n\
+.RB [ -\\fIflag\\fP \" [\\fIvalue\\fP]]... [\" --\\fIopt-name\\fP [ = \"| ]\\fIvalue\\fP]...\"";
+  print ".\\\" @@"
+  }
+  synopsis_updated=1;
+  next;
+}
+/^.\\" @options@$/,/^.\\" @@$/{
+  if (!options_updated) {
+    print ".\\\" @options@";
+print "\
+.TP\n\
+.BR -o \", \" --output\n\
+send output to NAME instead of standard output.\n\
+Special attributes apply to this option.\n\
+See the invocation section in the info document.\n\
+.br";
+print "\
+.TP\n\
+.BR \\-? \", \" --help\n\
+Display usage information and exit.\n\
+.TP\n\
+.BR -! \", \" --more-help\n\
+Extended usage information passed thru pager.\n\
+.TP\n\
+.BR \\-v \" [\" v | c | n \"], \" --version [ =v | c | n ]\n\
+Output version of program and exit.  The default mode is `v', a simple\n\
+version.  The `c' mode will print copyright information and `n' will\n\
+print the full copyright notice.";
+  print ".\\\" @@"
+  }
+  options_updated=1;
+  next;
+}
+{print}
