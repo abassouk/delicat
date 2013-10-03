@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <strings.h>
-#include <assert.h>
 #include "system.h"
 #include "delicat-opt.h"
 #define VOID void
