@@ -4846,6 +4846,11 @@ if test "x$ac_cv_func_mknod" = xyes; then :
 
 fi
 
+ac_fn_c_check_func "$LINENO" "bzero" "ac_cv_func_bzero"
+if test "x$ac_cv_func_bzero" = xyes; then :
+
+fi
+
 
 
 

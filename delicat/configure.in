@@ -32,6 +32,7 @@ AC_STRUCT_ST_BLOCKS
 AC_FUNC_CLOSEDIR_VOID
 AC_CHECK_FUNCS(mkfifo)
 AC_CHECK_FUNC(mknod)
+AC_CHECK_FUNC(bzero)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
