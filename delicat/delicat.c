@@ -37,26 +37,51 @@ static int read_size = 1;
 static unsigned int buffer_read = 0;
 static unsigned int buffer_pos = 0;
 
-int permaread(void *ptr,size_t size){
-  size_t len;
-  while((len=read(0,ptr,size))>0){
-    ptr+=len;
-    size-=len;
+static char out_buffer[BUFFER_LENGTH];
+static int out_size;
+
+static int read_all(void *ptr,size_t size){
+  size_t len,remain=size;
+  while(remain>0 && (len=read(0,ptr,remain))>0){
+    ptr    += len;
+    remain -= len;
   }
-  if(len<0)
+  if(len<0) {
     return -1;
-  return 0;
+  }
+  return size-remain;
 }
 
-void write_values(char *values, int amount){
-  if(fwrite(values,1,amount,stdout)!=amount){
+static void write_all(char *buffer, int size) {
+  int len;
+  while(size>0 && (len = write(1, buffer, size))>0){
+    buffer += len;
+    size   -= len;
+  }
+  if(size>0){
     perror("writing values");
     exit(1);
   }
 }
 
-int token_depth=0;
-void pack_next(int nextChar){
+static void write_flush() {
+  write_all(out_buffer,out_size);
+  out_size=0;
+}
+
+static void write_values(char *values, int amount){
+  do {
+    int size = amount+out_size>BUFFER_LENGTH?BUFFER_LENGTH-out_size:amount;
+    amount-=size;
+    char *buf = out_buffer+out_size;
+    out_size += size;
+    while(size-->0) *buf++ = *values++;
+    if(out_size==BUFFER_LENGTH) write_flush();
+  } while(amount>0);
+}
+
+static int token_depth=0;
+static void pack_next(int nextChar){
   if(nextChar==TOKEN[token_depth] && ++token_depth<TOKEN_LENGTH){
     return;
   }
@@ -78,25 +103,27 @@ void pack_next(int nextChar){
         bzero(buffer,BUFFER_LENGTH);
         write_values(buffer,BUFFER_LENGTH);
       }
+      write_flush();
+      exit(0);
       return;
   }
   char tmp=nextChar;
   write_values(&tmp,1);
 }
 
-void unpack_next(int nextChar){
+static void unpack_next(int nextChar){
   if(token_depth==8) {
     if(nextChar==-1){
       // should not happen;
-      fprintf(stderr,"Premature end of input stream");
-      fflush(stdout);
+      fprintf(stderr,"Error: Premature end of input stream");
+      write_flush();
       exit(1);
       return;
     } else if(nextChar==0) {
-      fflush(stdout);
+      write_flush();
       if(!HAVE_OPT(NO_PAD)){
         buffer_read-=buffer_pos;
-        permaread(buffer,BUFFER_LENGTH-buffer_read);
+        read_all(buffer,BUFFER_LENGTH-buffer_read);
       }
       exit(0);
       return;
@@ -113,26 +140,30 @@ void unpack_next(int nextChar){
     token_depth=0;
   }
   if(nextChar == -1){
-      write_values(TOKEN,TOKEN_LENGTH);
-      char tmp=0;
-      write_values(&tmp,1);
-      bzero(buffer,BUFFER_LENGTH);
-      write_values(buffer,BUFFER_LENGTH);
+      // should not happen;
+      fprintf(stderr,"Error: Premature end of input stream\n");
+      write_flush();
+      exit(1);
       return;
   }
   char tmp=nextChar;
   write_values(&tmp,1);
 }
 
-int next_char() {
+static int next_char() {
   if(buffer_pos==buffer_read){
     buffer_pos=0;
-    buffer_read=read(0,buffer,read_size);
+    buffer_read=read_all(buffer,read_size);
     if(buffer_read==0){
       return -1;
     }
+    if(buffer_read==-1){
+      perror("reading stdin");
+      write_flush();
+      exit(1);
+    }
   }
-  return buffer[buffer_pos++];
+  return buffer[buffer_pos++] & 0xff;
 }
 
 int main (int argc, char **argv) {
@@ -143,19 +174,17 @@ int main (int argc, char **argv) {
   }
   read_size = HAVE_OPT(NO_PAD)?1:BUFFER_LENGTH;
   if(HAVE_OPT(REVERSE)){
+    int n;
     do {
-      int n = next_char();
+      n = next_char();
       unpack_next(n);
-      if(n == -1)
-        break;
-    } while(1);
+    } while(n!=-1);
   } else {
+    int n;
     do {
-      int n = next_char();
+      n = next_char();
       pack_next(n);
-      if(n == -1)
-        break;
-    } while(1);
+    } while(n!=-1);
   }
   return EXIT_SUCCESS;
 }
