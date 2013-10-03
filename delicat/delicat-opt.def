@@ -31,10 +31,24 @@ awk '/^ *AM_INIT_AUTOMAKE/{
 }' configure.in`;
 long_opts;
 
+/*
 flag = {
     name      = output;
-    value     = o;        /* flag style option character */
-    flag_arg  = ":";      /* option argument marker      */
-    max       = 1;        /* occurrence limit (one)     */
+    value     = o;        /* flag style option character * /
+    flag_arg  = ":";      /* option argument marker      * /
+    max       = 1;        /* occurrence limit (one)     * /
     descrip   = "send output to NAME instead of standard output";
+};
+*/
+flag = {
+	name = reverse;
+	value = r;
+	max=1;
+	descrip = "De-catenate the input stream copying only up to the first EOF marker.";
+};
+flag = {
+	name = no-pad;
+	value = n;
+	max=1;
+	descrip = "Don't pad EOF up to block size; smaller stream, but more CPU usage";
 };

@@ -14,8 +14,15 @@
     print ".\\\" @options@";
 print "\
 .TP\n\
-.BR -o \", \" --output\n\
-send output to NAME instead of standard output.\n\
+.BR -r \", \" --reverse\n\
+De-catenate the input stream copying only up to the first EOF marker..\n\
+Special attributes apply to this option.\n\
+See the invocation section in the info document.\n\
+.br";
+print "\
+.TP\n\
+.BR -n \", \" --no-pad\n\
+Don't pad EOF up to block size; smaller stream, but more CPU usage.\n\
 Special attributes apply to this option.\n\
 See the invocation section in the info document.\n\
 .br";

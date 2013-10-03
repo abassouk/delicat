@@ -39,8 +39,14 @@ by the author when she gets around to writing this part of the man page.
 .SH OPTIONS
 .\" @options@
 .TP
-.BR -o ", " --output
-send output to NAME instead of standard output.
+.BR -r ", " --reverse
+De-catenate the input stream copying only up to the first EOF marker..
+Special attributes apply to this option.
+See the invocation section in the info document.
+.br
+.TP
+.BR -n ", " --no-pad
+Don't pad EOF up to block size; smaller stream, but more CPU usage.
 Special attributes apply to this option.
 See the invocation section in the info document.
 .br
