@@ -17,9 +17,6 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  
 
-#include <termios.h>
-#include <grp.h>
-#include <pwd.h>
 */
 
 #include <stdio.h>
@@ -28,148 +25,138 @@
 #include <assert.h>
 #include "system.h"
 #include "delicat-opt.h"
-
-char *xmalloc ();
-char *xrealloc ();
-char *xstrdup ();
+#define VOID void
+#include "xmalloc.h"
 
 #define BUFFER_LENGTH 4096
 #define TOKEN_LENGTH 8
-#define TOKEN_EOF 1
-#define TOKEN_EXIST 2
 
-static char TOKEN[TOKEN_LENGTH]="abqd\0fgh";
-static char token_buffer[BUFFER_LENGTH+TOKEN_LENGTH+1]; 
-static char*buffer=&token_buffer[TOKEN_LENGTH];
+static char TOKEN[TOKEN_LENGTH]="abqd\1fgh";
+static char buffer[BUFFER_LENGTH];
+static int read_size = 1;
 
-static unsigned int in_stream_position = 0;
-static unsigned int out_stream_position = 0;
 static unsigned int buffer_read = 0;
-static unsigned int buffer_prefix = 0;
+static unsigned int buffer_pos = 0;
 
-
-void write_values(char *values, int amount){
-  if(write(1,values,amount)<0){
-    // TODO: check for write<amount.
-    perror("writing values");
-    exit(1);
+int permaread(void *ptr,size_t size){
+  size_t len;
+  while((len=read(0,ptr,size))>0){
+    ptr+=len;
+    size-=len;
   }
-  out_stream_position+=amount;
-}
-
-
-
-int find_next_token(){
-   if(buffer_read+buffer_prefix<=TOKEN_LENGTH)
-     return -1;
-   char *buf = buffer-buffer_prefix;
-   int i, max = buffer_read+buffer_prefix-TOKEN_LENGTH-1;
-   for(i=0;i<=max;i++,buf++){
-     if(bcmp(buf,TOKEN,TOKEN_LENGTH)==0){
-	return i;
-     }
-   }
-   return -1;
-}
-
-void skip_values(int amount){
-   assert(amount>0);
-   assert(amount<=buffer_read+buffer_prefix);
-
-   in_stream_position+=amount;
-   if(amount<buffer_prefix){
-     buffer_prefix-=amount;
-   } else {
-     amount -= buffer_prefix;
-     buffer_prefix=0;
-     buffer_read-=amount;
-     if(buffer_read>0){
-	bcopy(&buffer[amount], buffer, buffer_read);
-     }
-   }
-}
-
-void copy_values(int amount){
-   assert(amount>0);
-   assert(amount<=buffer_read+buffer_prefix);
-   if(write(1,buffer-buffer_prefix,amount)<0){
-     // TODO: check for write<amount.
-     perror("writing buffer");
-     exit(1);
-   }
-
-   out_stream_position+=amount;
-   skip_values(amount);
-}
-
-void write_EOF(){
-  write_values(TOKEN,TOKEN_LENGTH);
-  char tmp=0;
-  write_values(&tmp,1);
-  bzero(buffer,BUFFER_LENGTH);
-  if(write(1,buffer,BUFFER_LENGTH)<0){
-    // TODO: check for write<amount.
-    perror("writing buffer");
-    exit(1);
-  }
-}
-
-
-int handle_token(int prefix_position, char *post_value){
-  if(HAVE_OPT(REVERSE)){
-    if(*post_value!=0){
-      copy_values(prefix_position+TOKEN_LENGTH);
-      skip_values(1);
-    } else {
-      copy_values(prefix_position);
-      skip_values(TOKEN_LENGTH+1);
-      int remain = BUFFER_LENGTH-buffer_read;
-      skip_values(buffer_read);
-      if(remain>0){
-	int v = read(0,buffer,remain);
-        if(v<=0) {
-	  perror("Reading input");
-	  exit(1);
-        }
-      }
-      return 1;
-    }
-  } else {
-    copy_values(prefix_position+TOKEN_LENGTH);
-    char tmp='a';
-    write_values(&tmp,1);
-  }
+  if(len<0)
+    return -1;
   return 0;
 }
 
-int read_buffer(int size, int (*f)(char *)) {
-   assert(size<=BUFFER_LENGTH);
-   assert(buffer_read==0);
-   assert(buffer_prefix>=0 && buffer_prefix<=TOKEN_LENGTH);
-   int v = read(0,buffer,size);
-   if(v<=0) {
-	perror("Reading input");
-	exit(1);
-   }
-   buffer_read = v;
-   // find next token
-
-
-      return 0;
+void write_values(char *values, int amount){
+  if(fwrite(values,1,amount,stdout)!=amount){
+    perror("writing values");
+    exit(1);
+  }
 }
 
-int
-main (int argc, char **argv)
-{
+int token_depth=0;
+void pack_next(int nextChar){
+  if(nextChar==TOKEN[token_depth] && ++token_depth<TOKEN_LENGTH){
+    return;
+  }
+  if(token_depth>0){
+    write_values(TOKEN,token_depth);
+    if(token_depth==TOKEN_LENGTH){
+      char tmp=1;
+      write_values(&tmp,1);
+    }
+    token_depth=0;
+  }
+  if(nextChar == -1){
+      // EOF: write token + 0;
+      write_values(TOKEN,TOKEN_LENGTH);
+      char tmp=0;
+      write_values(&tmp,1);
+      if(!HAVE_OPT(NO_PAD)){
+        // then write buffer_length zeroes
+        bzero(buffer,BUFFER_LENGTH);
+        write_values(buffer,BUFFER_LENGTH);
+      }
+      return;
+  }
+  char tmp=nextChar;
+  write_values(&tmp,1);
+}
+
+void unpack_next(int nextChar){
+  if(token_depth==8) {
+    if(nextChar==-1){
+      // should not happen;
+      fprintf(stderr,"Premature end of input stream");
+      fflush(stdout);
+      exit(1);
+      return;
+    } else if(nextChar==0) {
+      fflush(stdout);
+      if(!HAVE_OPT(NO_PAD)){
+        buffer_read-=buffer_pos;
+        permaread(buffer,BUFFER_LENGTH-buffer_read);
+      }
+      exit(0);
+      return;
+    } else {
+        // ignore non-0 character.
+    	// pass-through to token_depth reset.
+    }
+  } else if(nextChar==TOKEN[token_depth]){
+    ++token_depth;
+    return;
+  }
+  if(token_depth>0){
+    write_values(TOKEN,token_depth);
+    token_depth=0;
+  }
+  if(nextChar == -1){
+      write_values(TOKEN,TOKEN_LENGTH);
+      char tmp=0;
+      write_values(&tmp,1);
+      bzero(buffer,BUFFER_LENGTH);
+      write_values(buffer,BUFFER_LENGTH);
+      return;
+  }
+  char tmp=nextChar;
+  write_values(&tmp,1);
+}
+
+int next_char() {
+  if(buffer_pos==buffer_read){
+    buffer_pos=0;
+    buffer_read=read(0,buffer,read_size);
+    if(buffer_read==0){
+      return -1;
+    }
+  }
+  return buffer[buffer_pos++];
+}
+
+int main (int argc, char **argv) {
   {
     int arg_ct = optionProcess( &delicatOptions, argc, argv );
     argc -= arg_ct;
         argv += arg_ct;
   }
+  read_size = HAVE_OPT(NO_PAD)?1:BUFFER_LENGTH;
   if(HAVE_OPT(REVERSE)){
-
+    do {
+      int n = next_char();
+      unpack_next(n);
+      if(n == -1)
+        break;
+    } while(1);
   } else {
-
+    do {
+      int n = next_char();
+      pack_next(n);
+      if(n == -1)
+        break;
+    } while(1);
   }
   return EXIT_SUCCESS;
 }
