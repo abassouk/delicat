@@ -1,8 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(delicat.c)
+AC_INIT([delicat], 1.0.0)
+AC_CONFIG_SRCDIR([delicat.c])
 dnl Every other copy of the package version number gets its value from here
-AM_INIT_AUTOMAKE(delicat, 0.1.0)
+AM_INIT_AUTOMAKE
 
 dnl create a config.h file (Automake will add -DHAVE_CONFIG_H)
 AM_CONFIG_HEADER(config.h)

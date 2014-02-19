@@ -25,10 +25,10 @@ exerc;
 */
 /* get the version number from configure.in */
 version       = `
-awk '/^ *AM_INIT_AUTOMAKE/{
-  sub(/.*AM_INIT_AUTOMAKE.*, */,"");sub(/\\).*$/,"");
+awk '/^ *AC_INIT/{
+  sub(/.*AC_INIT.*, */,"");sub(/\\).*$/,"");
   print
-}' configure.in`;
+}' configure.ac`;
 long_opts;
 
 /*
