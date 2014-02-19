@@ -17,10 +17,12 @@ Usage
 -----
 
 The command
-   (<cmd1> | delicat; <cmd2> | delicat) | ssh user@host "delicat -r | <cmd3>; delicat -r | <cmd4>"
+
+     (cmd1 | delicat; cmd2 | delicat) | ssh user@host "delicat -r | cmd3; delicat -r | cmd4"
 
 Is equicalent to the following:
-   <cmd1> | ssh user@host <cmd3>; <cmd2> | ssh user@host <cmd4>
+
+     cmd1 | ssh user@host cmd3; cmd2 | ssh user@host cmd4
 
 with the difference that only 1 ssh connection will be made. 
 
